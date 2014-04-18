@@ -5,7 +5,7 @@ Available at www.5capps.com/enrollify
 
 From the homepage:
 
-"Worried about getting a class, but don't want to keep checking Portal if it's filled up? Use this nifty tool that polls Portal every five minutes and texts you if the enrollment numbers for a class have changed."
+"Worried about getting a class, but don't want to keep checking Portal if it's filled up? Use this nifty tool that polls Portal every fifteen minutes and texts you if the enrollment numbers for a class have changed."
 
 From my website:
 
