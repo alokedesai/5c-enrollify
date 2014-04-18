@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>5C Enrollify</title>
+
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+
+		<link rel="stylesheet" href="/enrollify/static/css/input.css">
+
+		<link rel="stylesheet" href="/enrollify/static/css/typeahead.css">
+
+		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		  <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+		  <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+ 	</head>
+	<body>
+		<div class="container">
+			<div class="row">
+				<div class="col-lg-6 col-lg-offset-3 text-center">
+				<h1 class="text-center">5C Enrollify</h1>
+
+				<p>Worried about getting a class, but don't want to keep checking Portal if it's filled up? Use this nifty tool that polls Portal every five minutes and texts you if the enrollment numbers for a class have changed. Don't worry--you
+				can unsubscribe via text at any time, and I promise to keep your phone number private.</p>
+
+				<form id="form" action="#" method="post">
+					<input type="text" name="class" class="typeahead" placeholder="Course Code or Class Name">
+
+					<div class="input-group input-group-lg">
+						<span class="input-group-addon">+1</span>
+						<input type="text" name="phone" class="form-control" placeholder="Mobile Phone Number">
+					</div>
+
+					<br />
+					<div class="control-group">
+						<button type="submit" class="btn btn-primary btn-lg ladda-button" data-style="expand-left" id="submit">
+						 	<span class="glyphicon glyphicon-phone"></span>
+						 	<span class="ladda-label"></span> Text Me
+						</button>
+					</div>
+				</form>
+
+				<div class="alert alert-success" id="alert-success" style="margin: 1em; display: none;"><strong>Success!</strong> Your number and class were added to our database successfully! Check your phone to see if you got a confirmation message.
+				</div>
+
+				<div class="alert alert-danger" id="alert-failure" style="margin: 1em; display: none;"><strong>Oh, snap!</strong> For some reason, we had a problem adding your number and class to our database. Please try again later.
+				</div>
+
+				</div>
+			</div>
+
+			<div class="row">
+				<div class="col-lg-8 col-lg-offset-2 text-center ynooy">
+					Shamelessly made with Bootstrap.<br />
+					Made with <span class="glyphicon glyphicon-heart"></span> by Maury Quijada.
+
+					<p>Questions or suggestions? Contact the <a href="mailto:maury.quijada@gmail.com">creator</a>.</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<!-- Include all compiled plugins (below), or include individual files as needed -->
+		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+		<script src="http://5capps.com/enrollify/static/js/spin.js"></script>
+		<script src="http://5capps.com/enrollify/static/js/ladda.js"></script>
+		<script src="http://5capps.com/enrollify/static/js/typeahead.js"></script>
+
+		<script type="text/javascript">
+			// Handle autocomplete.
+			// Construct the suggestion engine.
+			var classes = new Bloodhound({
+				datumTokenizer: function(datum) { return Bloodhound.tokenizers.whitespace(datum.name) },
+				queryTokenizer: Bloodhound.tokenizers.whitespace,
+				limit: 10,
+				prefetch: {
+				    url: '/enrollify/getCourses',
+				    cacheKey: 'classes',
+				    ttl: 5000,
+				    filter: function(list) {
+				    	return $.map(list, function(classVal) {
+				    		return { name: classVal }; });
+				    	}
+			  	}
+			});
+			 
+			// Start the prefetching.
+			classes.initialize();
+			 
+			// Initialize the Typeahead.js plugin.
+			$('.typeahead').typeahead(null, {
+				name: 'classes',
+				displayKey: 'name',
+				source: classes.ttAdapter()
+			});
+
+			// Validate input that goes into the class field.
+			function isClassInputValid() {
+				var input = $("input[name='class']");
+				var inputVal = input.val();
+				var classObjects = classes.storage.get("data").datums;
+				for (var i = 0; i < classObjects.length; i++) {
+					if (classObjects[i].name == inputVal) {
+						input.removeClass("has-error");
+						input.addClass("has-success");
+						return true;
+					}
+				}
+				input.removeClass("has-success");
+				input.addClass("has-error");
+				return false;
+			}
+
+			// Do live key-checking.
+			var timer = 0;
+			$("input[name='class']").bind('input change keyup', function(e){
+			    if (timer) {
+			        clearTimeout(timer);
+			    }
+			    timer = setTimeout(isClassInputValid, 200); 
+			});
+
+			$(".tt-dropdown-menu").on('click', function(e){
+			    if (timer) {
+			        clearTimeout(timer);
+			    }
+			    timer = setTimeout(isClassInputValid, 200); 
+			});
+
+
+			// Handle form submissions.
+			Ladda.bind( 'button[type=submit]' );
+
+			$(function() {
+				$('#submit').click(function (e) {
+					// Don't do anything unless we ask for it.
+				 	e.preventDefault();
+				 	Ladda.stopAll();
+
+				 	// Validate the phone number entered.
+				 	var phone = $("input[name='phone']").val();
+				 	phone = phone.replace(/[^0-9]/g, "");
+				 	if (phone.length != 10) { 
+					   alert("Make sure you've entered a valid 10-digit phone number!");
+					   return;
+					}
+
+					// Validate the class entered.
+					if (!isClassInputValid()) {
+						alert("Make sure you've selected one of the classes that we've suggested.");
+						return;
+					}
+
+					// Grab the spinner and start it up.
+				 	var l = Ladda.create(this);
+				 	l.start();
+
+					// Send the phone number and class to the server for processing.
+					$.post("/enrollify/addRecord", { phone : phone,
+									   course_id : $("input[name='class']").val()})
+					.done(function () {
+						$("#alert-success").slideDown("slow");
+						window.setTimeout(function() { $("#alert-success").fadeOut(); }, 5000);
+					})
+					.fail(function () {
+						$("#alert-failure").slideDown("slow");
+						window.setTimeout(function() { $("#alert-failure").fadeOut(); }, 5000);
+					})
+					.always(function () { l.stop(); });
+
+				 	return true;
+				});
+			});
+		</script>
+	</body>
+</html>
